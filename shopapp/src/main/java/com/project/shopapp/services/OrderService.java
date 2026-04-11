@@ -1,0 +1,299 @@
+package com.project.shopapp.services;
+
+import com.project.shopapp.dtos.CartItemDTO;
+import com.project.shopapp.dtos.OrderDTO;
+import com.project.shopapp.exceptions.DataNotFoundException;
+import com.project.shopapp.models.*;
+import com.project.shopapp.repositories.OrderDetailRepository;
+import com.project.shopapp.repositories.OrderRepository;
+import com.project.shopapp.repositories.ProductRepository;
+import com.project.shopapp.repositories.UserRepository;
+import com.project.shopapp.responses.Order.ChartTotalResponse;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class OrderService implements IOrderService{
+    private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
+
+    private final OrderDetailRepository orderDetailRepository;
+
+    private final ModelMapper modelMapper;
+
+    @Override
+    @Transactional
+    public Order createOrder(OrderDTO orderDTO) throws Exception {
+        // Get the currently authenticated user's phone number
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String phoneNumber = authentication.getName(); // Assuming username is the phone number
+
+        User user = userRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new DataNotFoundException(
+                        "Cannot find authenticated user with phone number: " + phoneNumber));
+
+        // Kiểm tra xem cartItems có null không
+        if (orderDTO.getCartItems() == null) {
+            throw new Exception("Cart items cannot be null.");
+        }
+
+        // Configure ModelMapper to skip setting ID if you are creating a new Order
+        modelMapper.typeMap(OrderDTO.class, Order.class)
+                .addMappings(mapper -> mapper.skip(Order::setId));
+
+        // 1. Calculate total money and prepare orderDetails list
+        List<OrderDetail> orderDetailsList = new ArrayList<>();
+        float calculatedTotalMoney = 0.0f; // Initialize with 0.0f
+
+        if (orderDTO.getCartItems() == null || orderDTO.getCartItems().isEmpty()) {
+            throw new DataNotFoundException("Cart items cannot be null or empty.");
+        }
+
+        for (CartItemDTO cartItemDTO : orderDTO.getCartItems()) {
+            Product product = productRepository.findById(cartItemDTO.getProductId())
+                    .orElseThrow(() -> new DataNotFoundException("Product not found with id: " + cartItemDTO.getProductId()));
+
+            if (product.getPrice() == null) {
+                throw new DataNotFoundException("Product " + product.getName() + " (ID: " + product.getId() + ") has no price defined.");
+            }
+            if (cartItemDTO.getQuantity() <= 0) {
+                 throw new DataNotFoundException("Quantity for product " + product.getName() + " must be positive.");
+            }
+
+            OrderDetail orderDetail = new OrderDetail();
+            orderDetail.setProduct(product);
+            orderDetail.setNumberOfProducts(cartItemDTO.getQuantity());
+            orderDetail.setPrice(product.getPrice()); // Price per item at the time of order
+            orderDetail.setTotalMoney(product.getPrice() * cartItemDTO.getQuantity()); // Total for this line item
+            // orderDetail.setColor(cartItemDTO.getColor()); // If you have color or other variant info, set it here
+
+            orderDetailsList.add(orderDetail);
+            calculatedTotalMoney += (product.getPrice() * cartItemDTO.getQuantity());
+        }
+
+        // 2. Initialize Order entity and map fields from DTO
+        Order order = new Order();
+        modelMapper.map(orderDTO, order); // Map fields like fullname, email, address, note, shipping_method etc.
+
+        // 3. Set calculated and context-specific values
+        order.setUser(user); // Authenticated user
+        order.setOrderDate(new Date()); // Current date for order
+        order.setStatus(OrderStatus.PENDING); // Default status
+        order.setTotalMoney(orderDTO.getTotalMoney()); // Crucial: Set the backend-calculated total money
+
+        LocalDate shippingDate = orderDTO.getShippingDate() == null
+                ? LocalDate.now().plusDays(1) // Default to next day
+                : orderDTO.getShippingDate();
+        if (shippingDate.isBefore(LocalDate.now().minusDays(1))) { // Allow today as shipping date
+            throw new DataNotFoundException("Shipping date must be at least today or in the future.");
+        }
+        order.setShippingDate(shippingDate);
+        order.setActive(true); // Mark order as active
+        // Ensure phone_number and email from authenticated user or DTO as per business logic
+        // For instance, if DTO's phone/email can override user's default:
+        // order.setPhoneNumber(orderDTO.getPhoneNumber()); // Already mapped by modelMapper if field names match
+        // order.setEmail(orderDTO.getEmail()); // Already mapped
+
+        // 4. Save the Order first (to get an ID for OrderDetails if not using CascadeType.PERSIST correctly with bidirectional ownership)
+        // With CascadeType.ALL (which includes PERSIST) on Order.orderDetails and OrderDetail.order being the owning side (with @JoinColumn),
+        // setting orderDetails on Order and saving Order should cascade save to OrderDetails.
+        order.setOrderDetails(new ArrayList<>()); // Initialize to prevent NullPointerException if not cascaded correctly initially
+        Order savedOrder = orderRepository.save(order); // Save order to generate ID
+
+        // 5. Associate OrderDetails with the saved Order and save them
+        for (OrderDetail detail : orderDetailsList) {
+            detail.setOrder(savedOrder); // Link each OrderDetail to the saved Order
+            savedOrder.getOrderDetails().add(detail); // Add to the managed collection in Order
+        }
+        orderDetailRepository.saveAll(orderDetailsList); // Persist all order details
+        
+        // Giảm số lượng sản phẩm ngay khi tạo đơn hàng
+        for (OrderDetail detail : orderDetailsList) {
+            Product product = detail.getProduct();
+            if (product != null) {
+                product.setStock(product.getStock() - detail.getNumberOfProducts());
+                productRepository.save(product);
+            }
+        }
+        
+        // It might be good to save the order again if the collection 'orderDetails' in 'savedOrder' was modified and needs to be persisted explicitly
+        // However, if 'savedOrder' is a managed entity, changes to its collections might be automatically flushed depending on transaction boundaries and cascading settings.
+        // For clarity and safety, if 'orderDetails' were just added to 'savedOrder' after its initial save:
+        // orderRepository.save(savedOrder); // This might be redundant if cascading is set up perfectly.
+
+        return savedOrder;
+    }
+
+
+    @Override
+    public Order getOrder(Long id) {
+        Order selectedOrder = orderRepository.findById(id).orElse(null);
+        return selectedOrder;
+    }
+
+    @Override
+    @Transactional
+    public Order updateOrder(Long id, OrderDTO orderDTO)
+            throws DataNotFoundException {
+        Order order = orderRepository.findById(id).orElseThrow(() ->
+                new DataNotFoundException("Cannot find order with id: " + id));
+        User existingUser = userRepository.findById(
+                orderDTO.getUserId()).orElseThrow(() ->
+                new DataNotFoundException("Cannot find user with id: " + id));
+        // Tạo một luồng bảng ánh xạ riêng để kiểm soát việc ánh xạ
+        modelMapper.typeMap(OrderDTO.class, Order.class)
+                .addMappings(mapper -> mapper.skip(Order::setId));
+        // Cập nhật các trường của đơn hàng từ orderDTO
+        OrderStatus oldStatus = order.getStatus(); // Get current status before mapping
+
+        modelMapper.map(orderDTO, order);
+        order.setUser(existingUser);
+
+        // Update status
+        OrderStatus newStatus = order.getStatus(); // Initialize with current status, in case DTO doesn't provide one or it's invalid
+        if (orderDTO.getStatus() != null && !orderDTO.getStatus().isEmpty()) {
+            try {
+                newStatus = OrderStatus.valueOf(orderDTO.getStatus().toUpperCase());
+                order.setStatus(newStatus);
+            } catch (IllegalArgumentException e) {
+                throw new DataNotFoundException("Invalid status value: " + orderDTO.getStatus() +
+                        ". Valid values are: PENDING, PROCESSING, SHIPPED, DELIVERED, COMPLETED, CANCELLED, NOT_COMPLETED");
+            }
+        }
+
+        // Logic to revert stock if order is CANCELLED
+        if (newStatus == OrderStatus.CANCELLED && oldStatus != OrderStatus.CANCELLED) {
+            List<OrderDetail> orderDetails = order.getOrderDetails();
+            // If orderDetails are LAZY loaded and not fetched yet, fetch them
+            // This check might be redundant if already fetched or if the association is EAGER.
+            if (orderDetails == null || orderDetails.isEmpty()) {
+                orderDetails = orderDetailRepository.findByOrderId(order.getId());
+            }
+
+            for (OrderDetail detail : orderDetails) {
+                Product product = detail.getProduct();
+                if (product != null && product.getId() != null) {
+                     Product productToUpdate = productRepository.findById(product.getId())
+                            .orElseThrow(() -> new DataNotFoundException("Product not found with id: " + product.getId() + " for stock update."));
+                    int currentStock = productToUpdate.getStock() == null ? 0 : productToUpdate.getStock();
+                    productToUpdate.setStock(currentStock + detail.getNumberOfProducts());
+                    productRepository.save(productToUpdate);
+                } else {
+                    // Log or handle case where product might be null, though FK constraints should prevent this
+                    // Consider logging this as a warning or error.
+                    System.err.println("Warning: Product associated with OrderDetail ID: " + detail.getId() + " not found during stock reversion for order ID: " + order.getId());
+                }
+            }
+        }
+        // Potentially, logic to reduce stock if an order moves from CANCELLED to a non-CANCELLED state could be added here if needed.
+
+        return orderRepository.save(order);
+    }
+
+    @Override
+    @Transactional
+    public void deleteOrder(Long id) {
+        Order order = orderRepository.findById(id).orElse(null);
+        //no hard-delete, => please soft-delete
+        if(order != null) {
+            order.setActive(false);
+            orderRepository.save(order);
+        }
+    }
+
+    @Override
+    public List<Order> findByUserId(Long userId) {
+        return orderRepository.findByUserId(userId);
+    }
+
+    @Override
+    public Page<Order> getOrdersByKeyword(String keyword, Pageable pageable) {
+        return orderRepository.findByKeyword(keyword, pageable);
+    }
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    public List<ChartTotalResponse> getTotalMoneyByMonth(int year) {
+        List<Object[]> resultList = entityManager.createQuery(
+                        "SELECT MONTH(o.orderDate) AS month, SUM(o.totalMoney) AS totalMoney " +
+                                "FROM Order o " +
+                                "WHERE YEAR(o.orderDate) = :year " +
+                                "AND o.status = :status " +
+                                "GROUP BY MONTH(o.orderDate)")
+                .setParameter("year", year)
+                .setParameter("status", OrderStatus.COMPLETED) // Use enum for status comparison
+                .getResultList();
+
+        List<ChartTotalResponse> chartTotalResponses = resultList.stream()
+                .map(result -> new ChartTotalResponse((int) result[0], (double) result[1]))
+                .collect(Collectors.toList());
+
+        return chartTotalResponses;
+    }
+
+    @Transactional(readOnly = true)
+    public Long getTotalOrdersByMonth(int month, int year) {
+        return orderRepository.getTotalOrdersByMonth(month, year);
+    }
+
+    @Transactional(readOnly = true)
+    public Double getTotalMoney(int month, int year) {
+        return orderRepository.getTotalMoney(month, year);
+    }
+
+    @Transactional
+    public void updateOrderStatus(String orderId, OrderStatus status) throws DataNotFoundException {
+        Order order = orderRepository.findById(Long.valueOf(orderId))
+                .orElseThrow(() -> new DataNotFoundException("Order not found with id: " + orderId));
+        
+        // Lấy danh sách chi tiết đơn hàng
+        List<OrderDetail> orderDetails = order.getOrderDetails();
+        
+        // Xử lý số lượng sản phẩm khi thay đổi trạng thái
+        if (status == OrderStatus.PAID) {
+            // Giảm số lượng sản phẩm khi đơn hàng được thanh toán thành công
+            for (OrderDetail detail : orderDetails) {
+                Product product = detail.getProduct();
+                if (product != null) {
+                    product.setStock(product.getStock() - detail.getNumberOfProducts());
+                    productRepository.save(product);
+                }
+            }
+        } else if (status == OrderStatus.CANCELLED && order.getStatus() != OrderStatus.CANCELLED) {
+            // Hoàn trả số lượng sản phẩm khi đơn hàng bị hủy
+            for (OrderDetail detail : orderDetails) {
+                Product product = detail.getProduct();
+                if (product != null) {
+                    product.setStock(product.getStock() + detail.getNumberOfProducts());
+                    productRepository.save(product);
+                }
+            }
+        } else if (order.getStatus() == OrderStatus.CANCELLED && status != OrderStatus.CANCELLED) {
+            // Giảm lại số lượng nếu đơn hàng từ CANCELLED trở về trạng thái khác
+            for (OrderDetail detail : orderDetails) {
+                Product product = detail.getProduct();
+                if (product != null) {
+                    product.setStock(product.getStock() - detail.getNumberOfProducts());
+                    productRepository.save(product);
+                }
+            }
+        }
+        
+        order.setStatus(status);
+        orderRepository.save(order);
+    }
+}

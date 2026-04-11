@@ -1,0 +1,2 @@
+We use maven to manage Java dependencies, so when talking about Java packages, please always provide me with instructions and code examples using maven.
+I would like all responses to be answered in Vietnamese
