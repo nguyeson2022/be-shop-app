@@ -40,6 +40,7 @@ public class Product extends BaseEntity{
     private Category category;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @org.hibernate.annotations.BatchSize(size = 20)
     private List<ProductImage> productImages;
 
 }

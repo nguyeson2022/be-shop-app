@@ -35,10 +35,10 @@ public class CategoryService implements ICategoryService {
     }
 
     @Override
-    public List<Category> getAllCategories() {
+    public List<Category> getAllCategories(int page, int limit) {
 
         Sort sort = Sort.by("id").descending();
-        Pageable sortedPageable = PageRequest.of(0, 1000, sort);
+        Pageable sortedPageable = PageRequest.of(page - 1, limit, sort);
         return categoryRepository.findAll(sortedPageable).getContent();
     }
 

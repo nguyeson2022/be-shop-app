@@ -10,6 +10,7 @@ import com.project.shopapp.responses.Product.ProductResponse;
 import com.project.shopapp.services.Product.ProductService;
 import com.project.shopapp.utils.MessageKeys;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -38,6 +39,9 @@ public class ProductController {
 
     private final ProductService productService;
     private final LocalizationUtils localizationUtils;
+
+    @Value("${app.upload.dir}")
+    private String uploadDir;
 
     @PostMapping("")
     //POST http://localhost:8088/v1/api/products
@@ -125,19 +129,22 @@ public class ProductController {
     @GetMapping("/images/{imageName}")
     public ResponseEntity<?> viewImage(@PathVariable String imageName) {
         try {
-            java.nio.file.Path imagePath = Paths.get("uploads/"+imageName);
+            java.nio.file.Path imagePath = Paths.get(uploadDir, imageName);
             UrlResource resource = new UrlResource(imagePath.toUri());
 
             if (resource.exists()) {
                 return ResponseEntity.ok()
                         .contentType(MediaType.IMAGE_JPEG)
                         .body(resource);
-            } else {
+            }
+
+            UrlResource notFoundResource = new UrlResource(Paths.get(uploadDir, "notfound.jpg").toUri());
+            if (notFoundResource.exists()) {
                 return ResponseEntity.ok()
                         .contentType(MediaType.IMAGE_JPEG)
-                        .body(new UrlResource(Paths.get("uploads/notfound.jpg").toUri()));
-                //return ResponseEntity.notFound().build();
+                        .body(notFoundResource);
             }
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
@@ -150,13 +157,13 @@ public class ProductController {
         // Thêm UUID vào trước tên file để đảm bảo tên file là duy nhất
         String uniqueFilename = UUID.randomUUID().toString() + "_" + filename;
         // Đường dẫn đến thư mục mà bạn muốn lưu file
-        java.nio.file.Path uploadDir = Paths.get("uploads");
+        java.nio.file.Path uploadPath = Paths.get(uploadDir);
         // Kiểm tra và tạo thư mục nếu nó không tồn tại
-        if (!Files.exists(uploadDir)) {
-            Files.createDirectories(uploadDir);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
         }
         // Đường dẫn đầy đủ đến file
-        java.nio.file.Path destination = Paths.get(uploadDir.toString(), uniqueFilename);
+        java.nio.file.Path destination = uploadPath.resolve(uniqueFilename);
         // Sao chép file vào thư mục đích
         Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
         return uniqueFilename;

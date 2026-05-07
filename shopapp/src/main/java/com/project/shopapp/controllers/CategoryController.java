@@ -32,8 +32,8 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("${api.prefix}/categories")
-//@Validated
-//Dependency Injection
+// @Validated
+// Dependency Injection
 @RequiredArgsConstructor
 public class CategoryController {
     private final CategoryService categoryService;
@@ -43,12 +43,13 @@ public class CategoryController {
 
     @PostMapping("")
     @Transactional
-    //Nếu tham số truyền vào là 1 object thì sao ? => Data Transfer Object = Request Object
+    // Nếu tham số truyền vào là 1 object thì sao ? => Data Transfer Object =
+    // Request Object
     public ResponseEntity<CategoryResponse> createCategory(
             @Valid @RequestBody CategoryDTO categoryDTO,
             BindingResult result) {
         CategoryResponse categoryResponse = new CategoryResponse();
-        if(result.hasErrors()) {
+        if (result.hasErrors()) {
             List<String> errorMessages = result.getFieldErrors()
                     .stream()
                     .map(FieldError::getDefaultMessage)
@@ -62,20 +63,18 @@ public class CategoryController {
         return ResponseEntity.ok(categoryResponse);
     }
 
-    //Hiện tất cả các categories
+    // Hiện tất cả các categories
     @GetMapping("")
     public ResponseEntity<List<Category>> getAllCategories(
-            @RequestParam("page")     int page,
-            @RequestParam("limit")    int limit
-    ) {
-        List<Category> categories = categoryService.getAllCategories();
+            @RequestParam("page") int page,
+            @RequestParam("limit") int limit) {
+        List<Category> categories = categoryService.getAllCategories(page, limit);
         return ResponseEntity.ok(categories);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getCategoryById(
-            @PathVariable("id") Long categoryId
-    ) {
+            @PathVariable("id") Long categoryId) {
         try {
             Category existingCategory = categoryService.getCategoryById(categoryId);
             return ResponseEntity.ok(existingCategory);
@@ -88,13 +87,14 @@ public class CategoryController {
     @Transactional
     public ResponseEntity<UpdateCategoryResponse> updateCategory(
             @PathVariable Long id,
-            @Valid @RequestBody CategoryDTO categoryDTO
-    ) {
+            @Valid @RequestBody CategoryDTO categoryDTO) {
         UpdateCategoryResponse updateCategoryResponse = new UpdateCategoryResponse();
         categoryService.updateCategory(id, categoryDTO);
-        updateCategoryResponse.setMessage(localizationUtils.getLocalizedMessage(MessageKeys.UPDATE_CATEGORY_SUCCESSFULLY));
+        updateCategoryResponse
+                .setMessage(localizationUtils.getLocalizedMessage(MessageKeys.UPDATE_CATEGORY_SUCCESSFULLY));
         return ResponseEntity.ok(updateCategoryResponse);
     }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<?> deleteCategory(@PathVariable Long id) {
@@ -114,10 +114,8 @@ public class CategoryController {
     @PostMapping(value = "uploads/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadCategoryThumbnail(
             @PathVariable("id") Long categoryId,
-            @RequestPart("files") MultipartFile file
-    ) {
+            @RequestPart("files") MultipartFile file) {
         try {
-
 
             if (file == null || file.isEmpty()) {
                 return ResponseEntity.badRequest().body("Please select a file to upload.");
@@ -166,10 +164,10 @@ public class CategoryController {
         Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
         return uniqueFilename;
     }
+
     private boolean isImageFile(MultipartFile file) {
         String contentType = file.getContentType();
         return contentType != null && contentType.startsWith("image/");
     }
 
 }
-
