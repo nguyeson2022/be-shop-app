@@ -1,6 +1,5 @@
 package com.project.shopapp.responses.Comment;
 
-import com.project.shopapp.models.Comment;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,4 +15,3 @@ public class CommentListResponse {
     private List<PageCommentResponse> comments;
     private int totalPages;
 }
-

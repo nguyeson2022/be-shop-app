@@ -1,7 +1,6 @@
 package com.project.shopapp.controllers;
 
 import com.project.shopapp.dtos.CommentDTO;
-import com.project.shopapp.exceptions.DataNotFoundException;
 import com.project.shopapp.models.Comment;
 import com.project.shopapp.models.User;
 import com.project.shopapp.repositories.CommentRepository;
@@ -22,7 +21,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.List;
-import java.util.Objects;
 
 @RestController
 @RequestMapping("${api.prefix}/comments")

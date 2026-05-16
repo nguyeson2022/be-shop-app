@@ -6,8 +6,6 @@ import com.project.shopapp.responses.ArticleResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
-import java.util.List;
-
 public interface IArticleService {
     Article createArticle(ArticleDTO articleDTO);
 

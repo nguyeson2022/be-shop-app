@@ -1,9 +1,7 @@
 package com.project.shopapp.dtos;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.List;
@@ -15,16 +13,16 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class PayOSPaymentRequestDTO {
-//    @NotNull
+    // @NotNull
     private Long orderCode;
 
     /** Số tiền thanh toán (integer, VND) – required */
     @NotNull
-//    @Positive
+    // @Positive
     private Integer amount;
 
     /** Mô tả thanh toán – required */
-//    @NotBlank
+    // @NotBlank
     private String description;
 
     /** Thông tin người mua (optional) */
@@ -34,22 +32,22 @@ public class PayOSPaymentRequestDTO {
     private String buyerAddress;
 
     /** Email người mua (optional) */
-//    @Email
+    // @Email
     private String buyerEmail;
 
     /** SĐT người mua (optional) */
     private String buyerPhone;
 
     /** Danh sách sản phẩm – optional theo ảnh, nhưng thường nên gửi */
-//    @Size(min = 1, message = "items không được rỗng khi gửi danh sách sản phẩm")
-//    private List<PayosItem> items;
+    // @Size(min = 1, message = "items không được rỗng khi gửi danh sách sản phẩm")
+    // private List<PayosItem> items;
 
     /** URL khi người dùng huỷ – required */
-//    @NotBlank
+    // @NotBlank
     private String cancelUrl;
 
     /** URL khi thanh toán thành công – required */
-//    @NotBlank
+    // @NotBlank
     private String returnUrl;
 
     /**
@@ -60,20 +58,20 @@ public class PayOSPaymentRequestDTO {
     private JsonNode invoice;
 
     /** Thời gian hết hạn link (Unix timestamp, int32) – required */
-//    @NotNull
-//    @Positive
+    // @NotNull
+    // @Positive
     private Long expiredAt;
 
     /**
      * Chữ ký HMAC_SHA256 – required.
-     * Bạn sẽ ký theo hướng dẫn PayOS (sort theo alphabet, v.v.) trước khi set vào đây.
+     * Bạn sẽ ký theo hướng dẫn PayOS (sort theo alphabet, v.v.) trước khi set vào
+     * đây.
      */
-//    @NotBlank
+    // @NotBlank
     private String signature;
 
-    
     private List<PayOSItemDTO> items;
-    
+
     @Data
     @Getter
     @Setter

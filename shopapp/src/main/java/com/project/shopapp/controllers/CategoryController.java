@@ -9,7 +9,6 @@ import com.project.shopapp.services.Category.CategoryService;
 import com.project.shopapp.utils.MessageKeys;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +19,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.LocaleResolver;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -37,8 +35,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CategoryController {
     private final CategoryService categoryService;
-    private final LocaleResolver localeResolver;
-    private final MessageSource messageSource;
     private final LocalizationUtils localizationUtils;
 
     @PostMapping("")

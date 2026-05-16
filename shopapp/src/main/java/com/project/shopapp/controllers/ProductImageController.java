@@ -1,7 +1,5 @@
 package com.project.shopapp.controllers;
 
-import com.project.shopapp.components.LocalizationUtils;
-
 import com.project.shopapp.models.ProductImage;
 import com.project.shopapp.responses.*;
 import com.project.shopapp.responses.Product.ProductImageListResponse;
@@ -28,7 +26,6 @@ import java.util.List;
 public class ProductImageController {
     private final ProductImageService productImageService;
     private final ProductService productService;
-    private final LocalizationUtils localizationUtils;
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")

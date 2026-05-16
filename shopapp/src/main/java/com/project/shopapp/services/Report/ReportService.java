@@ -3,7 +3,6 @@ package com.project.shopapp.services.Report;
 import com.project.shopapp.models.Order;
 import com.project.shopapp.repositories.OrderRepository;
 import lombok.RequiredArgsConstructor;
-import org.apache.poi.hssf.usermodel.HSSFCellStyle;
 import org.apache.poi.hssf.usermodel.HSSFFont;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
@@ -33,8 +32,8 @@ public class ReportService {
         createTitleRow(sheet, title, reportDate, workbook);
 
         // Tạo header
-        String[] headers = {"ID", "Họ và tên", "Số điện thoại", "Địa chỉ nhận", "Email", "Ghi chú",
-                "Ngày tạo", "Trạng thái",  "Phương thức vận chuyển", "Phương thức thanh toán", "Tổng tiền"};
+        String[] headers = { "ID", "Họ và tên", "Số điện thoại", "Địa chỉ nhận", "Email", "Ghi chú",
+                "Ngày tạo", "Trạng thái", "Phương thức vận chuyển", "Phương thức thanh toán", "Tổng tiền" };
         createHeaderRow(sheet, headers, workbook);
 
         // Đổ dữ liệu
@@ -110,11 +109,11 @@ public class ReportService {
         HSSFFont font = (HSSFFont) workbook.createFont();
         font.setColor(IndexedColors.RED.getIndex());
         borderedDataStyle.setFont(font);
-//        borderedDataStyle.setBorderBottom(BorderStyle.THIN);
-//        borderedDataStyle.setBorderTop(BorderStyle.THIN);
-//        borderedDataStyle.setBorderLeft(BorderStyle.THIN);
-//        borderedDataStyle.setBorderRight(BorderStyle.THIN);
-//        borderedDataStyle.setBottomBorderColor(IndexedColors.RED.getIndex());
+        // borderedDataStyle.setBorderBottom(BorderStyle.THIN);
+        // borderedDataStyle.setBorderTop(BorderStyle.THIN);
+        // borderedDataStyle.setBorderLeft(BorderStyle.THIN);
+        // borderedDataStyle.setBorderRight(BorderStyle.THIN);
+        // borderedDataStyle.setBottomBorderColor(IndexedColors.RED.getIndex());
 
         // Đổ dữ liệu vào từng dòng
         for (Order order : orders) {

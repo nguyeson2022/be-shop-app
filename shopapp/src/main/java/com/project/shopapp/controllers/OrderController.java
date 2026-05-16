@@ -6,7 +6,6 @@ import com.project.shopapp.models.Order;
 import com.project.shopapp.responses.Order.ChartTotalResponse;
 import com.project.shopapp.responses.OrderListResponse;
 import com.project.shopapp.responses.OrderResponse;
-import com.project.shopapp.services.IOrderService;
 import com.project.shopapp.services.OrderService;
 import com.project.shopapp.utils.MessageKeys;
 import jakarta.validation.Valid;

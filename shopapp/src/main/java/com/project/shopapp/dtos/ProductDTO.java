@@ -3,11 +3,8 @@ package com.project.shopapp.dtos;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import jakarta.validation.constraints.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
-@Data//toString
+@Data // toString
 @Getter
 @Setter
 @AllArgsConstructor
@@ -33,6 +30,5 @@ public class ProductDTO {
 
     @JsonProperty("stock")
     private Long stock;
-
 
 }

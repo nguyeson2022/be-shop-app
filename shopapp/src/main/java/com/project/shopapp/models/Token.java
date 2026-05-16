@@ -5,11 +5,6 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.*;
-import lombok.*;
-
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "tokens")
 @Getter
@@ -42,7 +37,6 @@ public class Token {
 
     private boolean revoked;
     private boolean expired;
-
 
     @ManyToOne
     @JoinColumn(name = "user_id")

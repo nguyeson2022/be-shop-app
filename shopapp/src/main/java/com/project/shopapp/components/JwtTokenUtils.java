@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -24,35 +23,38 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 public class JwtTokenUtils {
     @Value("${jwt.expiration}")
-    private int expiration; //save to an environment variable
+    private int expiration; // save to an environment variable
     @Value("${jwt.secretKey}")
     private String secretKey;
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenUtils.class);
     private final TokenReponsitory tokenRepository;
-    public String generateToken(com.project.shopapp.models.User user) throws Exception{
-        //properties => claims
+
+    public String generateToken(com.project.shopapp.models.User user) throws Exception {
+        // properties => claims
         Map<String, Object> claims = new HashMap<>();
-        //this.generateSecretKey();
+        // this.generateSecretKey();
         claims.put("phoneNumber", user.getPhoneNumber());
         try {
             String token = Jwts.builder()
-                    .setClaims(claims) //how to extract claims from this ?
+                    .setClaims(claims) // how to extract claims from this ?
                     .setSubject(user.getPhoneNumber())
                     .setExpiration(new Date(System.currentTimeMillis() + expiration * 1000L))
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                     .compact();
             return token;
-        }catch (Exception e) {
-            //you can "inject" Logger, instead System.out.println
-            throw new InvalidParamException("Cannot create jwt token, error: "+e.getMessage());
-            //return null;
+        } catch (Exception e) {
+            // you can "inject" Logger, instead System.out.println
+            throw new InvalidParamException("Cannot create jwt token, error: " + e.getMessage());
+            // return null;
         }
     }
+
     private Key getSignInKey() {
         byte[] bytes = Decoders.BASE64.decode(secretKey);
-        //Keys.hmacShaKeyFor(Decoders.BASE64.decode("TaqlmGv1iEDMRiFp/pHuID1+T84IABfuA0xXh4GhiUI="));
+        // Keys.hmacShaKeyFor(Decoders.BASE64.decode("TaqlmGv1iEDMRiFp/pHuID1+T84IABfuA0xXh4GhiUI="));
         return Keys.hmacShaKeyFor(bytes);
     }
+
     private String generateSecretKey() {
         SecureRandom random = new SecureRandom();
         byte[] keyBytes = new byte[32]; // 256-bit key
@@ -60,6 +62,7 @@ public class JwtTokenUtils {
         String secretKey = Encoders.BASE64.encode(keyBytes);
         return secretKey;
     }
+
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSignInKey())
@@ -67,26 +70,29 @@ public class JwtTokenUtils {
                 .parseClaimsJws(token)
                 .getBody();
     }
-    public  <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = this.extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
-    //check expiration
+
+    // check expiration
     public boolean isTokenExpired(String token) {
         Date expirationDate = this.extractClaim(token, Claims::getExpiration);
         return expirationDate.before(new Date());
     }
+
     public String extractPhoneNumber(String token) {
         return extractClaim(token, Claims::getSubject);
     }
+
     public boolean validateToken(String token, User userDetails) {
         try {
             String phoneNumber = extractPhoneNumber(token);
             Token existingToken = tokenRepository.findByToken(token);
-            if(existingToken == null ||
+            if (existingToken == null ||
                     existingToken.isRevoked() == true ||
-                    !userDetails.isActive()
-            ) {
+                    !userDetails.isActive()) {
                 return false;
             }
             return (phoneNumber.equals(userDetails.getUsername()))

@@ -5,7 +5,6 @@ import com.project.shopapp.exceptions.DataNotFoundException;
 import com.project.shopapp.models.Article;
 import com.project.shopapp.repositories.ArticleRepository;
 import com.project.shopapp.responses.ArticleResponse;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -13,14 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.List;
 import java.util.Optional;
-
 
 @Service
 @RequiredArgsConstructor
-public class ArticleService implements IArticleService{
+public class ArticleService implements IArticleService {
 
     private final ArticleRepository articleRepository;
 
@@ -40,7 +36,7 @@ public class ArticleService implements IArticleService{
     @Override
     public Article getArticleById(Long id) {
         return articleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Can not found id: "+ id));
+                .orElseThrow(() -> new RuntimeException("Can not found id: " + id));
     }
 
     @Override
@@ -74,7 +70,7 @@ public class ArticleService implements IArticleService{
     }
 
     @Transactional
-    public void updateArticleThumbnail(Long articleId, String thumbnail) throws Exception{
+    public void updateArticleThumbnail(Long articleId, String thumbnail) throws Exception {
         Optional<Article> optionalArticle = articleRepository.findById(articleId);
         if (optionalArticle.isPresent()) {
             Article article = optionalArticle.get();
@@ -84,7 +80,6 @@ public class ArticleService implements IArticleService{
             throw new DataNotFoundException("Article not found with id: " + articleId);
         }
     }
-
 
     @Override
     public void deleteArticle(Long id) {

@@ -1,18 +1,12 @@
 package com.project.shopapp.controllers;
 
-import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dtos.ArticleDTO;
-import com.project.shopapp.dtos.CategoryDTO;
 import com.project.shopapp.exceptions.DataNotFoundException;
 import com.project.shopapp.models.Article;
-import com.project.shopapp.models.Category;
-import com.project.shopapp.models.Product;
 import com.project.shopapp.responses.*;
 import com.project.shopapp.services.ArticleService;
-import com.project.shopapp.utils.MessageKeys;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -21,10 +15,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.LocaleResolver;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -40,32 +32,22 @@ import java.util.UUID;
 public class ArticleController {
 
     private final ArticleService articleService;
-    private final LocaleResolver localeResolver;
-    private final MessageSource messageSource;
-    private final LocalizationUtils localizationUtils;
 
     @PostMapping("")
     public ResponseEntity<Article> createArticle(
             @Valid @RequestBody ArticleDTO articleDTO,
             BindingResult result) {
-        ArticleResponse articleResponse = new ArticleResponse();
-        Article article = new Article();
-        if(result.hasErrors()) {
-            List<String> errorMessages = result.getFieldErrors()
-                    .stream()
-                    .map(FieldError::getDefaultMessage)
-                    .toList();
-            return ResponseEntity.badRequest().body(article);
+        if (result.hasErrors()) {
+            return ResponseEntity.badRequest().body(new Article());
         }
-        article = articleService.createArticle(articleDTO);
+        Article article = articleService.createArticle(articleDTO);
         return ResponseEntity.ok(article);
     }
 
     @GetMapping("")
     public ResponseEntity<ArticleListResponse> getAllArticles(
-            @RequestParam(value = "page", defaultValue = "0")     int page,
-            @RequestParam("limit")    int limit
-    ) {
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam("limit") int limit) {
         PageRequest pageRequest = PageRequest.of(page - 1, limit, Sort.by("id").ascending());
 
         Page<ArticleResponse> articlePage = articleService.getAllArticle(pageRequest);
@@ -81,24 +63,21 @@ public class ArticleController {
     @PutMapping("/{id}")
     public ResponseEntity<String> updateArticle(
             @PathVariable Long id,
-            @Valid @RequestBody ArticleDTO articleDTO
-    )throws DataNotFoundException {
+            @Valid @RequestBody ArticleDTO articleDTO) throws DataNotFoundException {
         articleService.updateArticle(id, articleDTO);
         return ResponseEntity.ok("UPDATE_ARTICLE_SUCCESSFULLY");
     }
 
-
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteArticle(@PathVariable Long id) {
-            articleService.deleteArticle(id);
-            return ResponseEntity.ok("Delete article successfully");
+        articleService.deleteArticle(id);
+        return ResponseEntity.ok("Delete article successfully");
 
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getArticleById(
-            @PathVariable("id") Long articleId
-    ) {
+            @PathVariable("id") Long articleId) {
         try {
             Article existingArticle = articleService.getArticleById(articleId);
             return ResponseEntity.ok(ArticleResponse.fromArticle(existingArticle));
@@ -107,14 +86,11 @@ public class ArticleController {
         }
     }
 
-
     @PostMapping(value = "/uploads/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadThumbnail(
             @PathVariable("id") Long articleId,
-            @RequestParam("files") MultipartFile file
-    ) {
+            @RequestParam("files") MultipartFile file) {
         try {
-
 
             if (file == null || file.isEmpty()) {
                 return ResponseEntity.badRequest().body("Please select a file to upload.");
@@ -164,6 +140,7 @@ public class ArticleController {
         Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
         return uniqueFilename;
     }
+
     private boolean isImageFile(MultipartFile file) {
         String contentType = file.getContentType();
         return contentType != null && contentType.startsWith("image/");

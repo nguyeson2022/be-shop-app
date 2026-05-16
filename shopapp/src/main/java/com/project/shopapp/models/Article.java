@@ -6,13 +6,12 @@ import org.hibernate.validator.constraints.Length;
 
 @Entity
 @Table(name = "articles")
-@Data
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Article extends BaseEntity{
+public class Article extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

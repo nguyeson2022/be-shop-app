@@ -1,13 +1,10 @@
 package com.project.shopapp.controllers;
 
-import com.project.shopapp.dtos.CouponConditionDTO;
 import com.project.shopapp.models.Coupon;
 import com.project.shopapp.models.CouponCondition;
 import com.project.shopapp.repositories.CouponConditionRepository;
 import com.project.shopapp.repositories.CouponRepository;
-import com.project.shopapp.responses.ResponseObject;
 import com.project.shopapp.services.Coupon.CouponConditionService;
-import com.project.shopapp.services.Coupon.CouponService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class CouponConditionController {
     private final CouponConditionService couponConditionService;
-    private final CouponService couponService;
     private final CouponConditionRepository couponConditionRepository;
     private final CouponRepository couponRepository;
 
